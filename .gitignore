@@ -5,3 +5,5 @@ _site/
 # R/Python/editor files as appropriate
 .Rhistory
 __pycache__/
+/.quarto/
+**/*.quarto_ipynb
