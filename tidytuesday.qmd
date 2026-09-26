@@ -1,0 +1,70 @@
+---
+title: "Apprentissage ojs avec tidytuesday"
+format: dashboard
+engine: knitr
+execute:
+  echo: false
+---
+
+```{ojs}
+//| output: false
+health_spending = FileAttachment('data/health_spending.csv')
+  .csv({ typed: true })
+
+countries = Array.from(
+  new Set(health_spending.map(d => d.country_name))
+).sort()
+
+types_unit = [
+  {name: "% of current health expenditure", location: "En proportion de la dépense de santé totale"},
+  {name: "constant 2023 US$", location: "En dollars constants de 2023"},
+]
+
+```
+
+# {.sidebar}
+
+```{ojs}
+
+viewof selected_country = Inputs.select(
+  countries,
+  {
+    label: "Choisir un pays :",
+    values: countries[0]
+  }
+)
+
+viewof unite = Inputs.radio(types_unit, {
+  label: "Unité à afficher en y :",
+  format: x => x.name,
+  value: types_unit[1]   
+})
+
+```
+
+```{ojs}
+//| output: false
+
+country_health_spending = health_spending.filter(
+  d => d.country_name === selected_country &&
+    d.unit === unite.name
+)
+```
+
+# Evolution des dépenses de santé
+
+```{ojs}
+evolution.legend("color")
+evolution  = Plot.line(country_health_spending,
+  {
+    x: "year",
+    y: "value",
+    stroke: "expenditure_type"
+  }
+).plot()
+```
+
+# Table
+```{ojs}
+Inputs.table(country_health_spending)
+```

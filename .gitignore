@@ -1,0 +1,7 @@
+# Quarto generated files
+.quarto/
+_site/
+
+# R/Python/editor files as appropriate
+.Rhistory
+__pycache__/
