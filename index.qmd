@@ -8,21 +8,39 @@ execute:
 
 ```{ojs}
 //| output: false
-health_spending = FileAttachment('data/health_spending.csv')
-  .csv({ typed: true })
 
-countries = Array.from(
+health_spending = FileAttachment("data/health_spending.csv")
+  .csv()
+  .then(data =>
+    data.map(row => ({
+      ...row, // permet de récupérer
+      year: new Date(row.year),
+      value: Number(row.value) // on pourrait écrire +row.value la conversion en nombre aussi
+    }))
+  )
+
+ countries = Array.from(
   new Set(health_spending.map(d => d.country_name))
 ).sort()
 
 types_unit = [
-  {name: "% of current health expenditure", location: "En proportion de la dépense de santé totale"},
-  {name: "constant 2023 US$", location: "En dollars constants de 2023"},
+  {name: "% of current health expenditure", label: "En proportion de la dépense de santé totale"},
+  {name: "constant 2023 US$", label: "En millions de dollars constants (2023)"},
 ]
 
 ```
 
-# {.sidebar}
+# Table
+
+```{ojs}
+countries
+
+Inputs.table(country_health_spending)
+```
+
+# Evolution
+
+## {.sidebar}
 
 ```{ojs}
 
@@ -30,13 +48,13 @@ viewof selected_country = Inputs.select(
   countries,
   {
     label: "Choisir un pays :",
-    values: countries[0]
+    value: "France"
   }
 )
 
 viewof unite = Inputs.radio(types_unit, {
   label: "Unité à afficher en y :",
-  format: x => x.name,
+  format: x => x.label,
   value: types_unit[1]   
 })
 
@@ -48,23 +66,69 @@ viewof unite = Inputs.radio(types_unit, {
 country_health_spending = health_spending.filter(
   d => d.country_name === selected_country &&
     d.unit === unite.name
+  )
+  .map(
+    row => ({
+      ...row,
+      value: row.unit === "constant 2023 US$" ? row.value / 1_000_000_000 : row.value
+    })
+  )
+```
+
+```{ojs}
+//| output: false
+
+values = country_health_spending.map(row => row.value)
+years = country_health_spending.map(row => row.year.getFullYear())
+
+maxValue = Math.max(...values)
+minValue = Math.min(...values)
+
+maxYear = Math.max(...years)
+minYear = Math.min(...years)
+```
+
+## Row (60%)
+
+```{ojs}
+evolution  = Plot.plot({
+  title: "Dépenses de santé",
+  subtitle: selected_country + " de " + minYear + " à " + maxYear,
+  marginLeft: 50,
+  x: {
+    label: "Année"
+  },
+  y: {
+    label: "En millions de dollars constants (2023)",
+    type: unite.name === "constant 2023 US$" ? "linear" : "linear",
+    domain: unite.name === "constant 2023 US$" ? [0, maxValue] : [0, 100],
+    grid: true
+  },
+  marks: [
+    Plot.dot(country_health_spending,
+      {
+        x: "year",
+        y: "value",
+        fill : "expenditure_type",
+        stroke: "expenditure_type"
+      }
+    ),
+    Plot.lineY(country_health_spending,
+    {
+      x: "year",
+      y: "value",
+      stroke: "expenditure_type"
+    }
+  )
+  ],
+  color: {
+      legend: true
+  }
+}
 )
 ```
 
-# Evolution des dépenses de santé
+# Comparaison
 
-```{ojs}
-evolution.legend("color")
-evolution  = Plot.line(country_health_spending,
-  {
-    x: "year",
-    y: "value",
-    stroke: "expenditure_type"
-  }
-).plot()
-```
+## {.sidebar}
 
-# Table
-```{ojs}
-Inputs.table(country_health_spending)
-```
